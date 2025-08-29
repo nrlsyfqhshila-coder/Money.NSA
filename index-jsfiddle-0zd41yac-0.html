@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aplikasi Analisis Keuangan Profesional</title>
+
+  <style>
+    body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(120deg,#f5f7fa,#c3cfe2);
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+    color: #555;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+button {
+    background: #4caf50;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #43a047;
+}
+
+#chart {
+    margin-top: 40px;
+}
+  </style>
+
+  
+</head>
+<body>
+  <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
+
+<div class="container">
+    <h1>Dashboard Analisis Keuangan</h1>
+    <label for="opsi">Pilih Opsi:</label>
+    <select id="opsi">
+        <option value="">-- Pilih Opsi --</option>
+        <option value="pemasukan">Pemasukan & Pengeluaran</option>
+        <option value="pinjaman">Pinjaman</option>
+        <option value="koperasi">Koperasi</option>
+    </select>
+
+    <div id="content"></div>
+    <canvas id="chart" width="600" height="300"></canvas>
+</div>
+<script src="script.js"></script>
+
+  <script>
+    const opsi = document.getElementById("opsi");
+const content = document.getElementById("content");
+let chart;
+
+// untuk menyimpan instance cleave
+let cleaveInputs = {};
+
+opsi.addEventListener("change", () => {
+    content.innerHTML = "";
+    if (chart) chart.destroy();
+    cleaveInputs = {}; // reset
+
+    const value = opsi.value;
+    if (value === "pemasukan") showPemasukan();
+    if (value === "pinjaman") showPinjaman();
+    if (value === "koperasi") showKoperasi();
+});
+
+function formatAngka(num) {
+    if (!num && num !== 0) return "";
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+// ---------------- PEMASUKAN ----------------
+function showPemasukan() {
+    content.innerHTML = `
+        <h2>Pemasukan & Pengeluaran</h2>
+        <label>Pemasukan Bulanan</label>
+        <input type="text" id="pemasukan" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <label>Pengeluaran Bulanan</label>
+        <input type="text" id="pengeluaran" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <p id="hasilPemasukan" style="margin-top:15px; font-weight:bold;"></p>
+    `;
+    cleaveInputs.pemasukan = new Cleave('#pemasukan', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+    cleaveInputs.pengeluaran = new Cleave('#pengeluaran', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+
+    document.getElementById("pemasukan").addEventListener("input", updatePemasukanChart);
+    document.getElementById("pengeluaran").addEventListener("input", updatePemasukanChart);
+}
+
+function updatePemasukanChart() {
+    const pemasukan = parseInt(cleaveInputs.pemasukan.getRawValue()) || 0;
+    const pengeluaran = parseInt(cleaveInputs.pengeluaran.getRawValue()) || 0;
+    const sisa = pemasukan - pengeluaran;
+
+    document.getElementById("hasilPemasukan").innerText = `Sisa: Rp ${formatAngka(sisa)}`;
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Pemasukan', 'Pengeluaran', 'Sisa'],
+            datasets: [{
+                label: 'Rp',
+                data: [pemasukan, pengeluaran, sisa],
+                backgroundColor: ['#4caf50','#f44336','#2196f3']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+
+// ---------------- PINJAMAN ----------------
+function showPinjaman() {
+    content.innerHTML = `
+        <h2>Pinjaman</h2>
+        <label>Total Pinjaman</label>
+        <input type="text" id="totalPinjaman" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <label>Bunga (%) per Tahun</label>
+        <input type="text" id="bunga" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <p id="hasilPinjaman" style="margin-top:15px; font-weight:bold;"></p>
+    `;
+    cleaveInputs.totalPinjaman = new Cleave('#totalPinjaman', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+    cleaveInputs.bunga = new Cleave('#bunga', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+
+    document.getElementById("totalPinjaman").addEventListener("input", updatePinjamanChart);
+    document.getElementById("bunga").addEventListener("input", updatePinjamanChart);
+}
+
+function updatePinjamanChart() {
+    const total = parseInt(cleaveInputs.totalPinjaman.getRawValue()) || 0;
+    const bungaTahun = parseFloat(cleaveInputs.bunga.getRawValue()) || 0;
+
+    const bungaTahunan = total * bungaTahun / 100;
+    const bungaBulan = bungaTahunan / 12;
+    const bungaHari = bungaTahunan / 365;
+    const angsuranPerBulan = (total + bungaTahunan) / 12;
+
+    document.getElementById("hasilPinjaman").innerHTML = `
+        Bunga Per Tahun: Rp ${formatAngka(bungaTahunan)}<br>
+        Bunga Per Bulan: Rp ${formatAngka(Number(bungaBulan.toFixed(0)))}<br>
+        Bunga Per Hari: Rp ${formatAngka(Number(bungaHari.toFixed(0)))}<br>
+        Total Pinjaman + Bunga Tahunan: Rp ${formatAngka(total + bungaTahunan)}<br>
+        Angsuran Per Bulan: Rp ${formatAngka(Number(angsuranPerBulan.toFixed(0)))}
+    `;
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Total Pinjaman','Bunga Tahunan'],
+            datasets: [{
+                data: [total, bungaTahunan],
+                backgroundColor: ['#ff9800','#673ab7']
+            }]
+        },
+        options: { responsive: true }
+    });
+}
+
+// ---------------- KOPERASI ----------------
+function showKoperasi() {
+    content.innerHTML = `
+        <h2>Koperasi</h2>
+        <label>Simpanan Pokok</label>
+        <input type="text" id="simpananPokok" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <label>Simpanan Wajib</label>
+        <input type="text" id="simpananWajib" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <label>Simpanan Sukarela</label>
+        <input type="text" id="simpananSukarela" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <label>Pinjaman</label>
+        <input type="text" id="pinjamanKoperasi" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <label>Bunga (%)</label>
+        <input type="text" id="bungaKoperasi" placeholder="0" inputmode="numeric" pattern="[0-9]*">
+        <label>Jenis Bunga</label>
+        <select id="tipeBunga">
+            <option value="tahun">Per Tahun</option>
+            <option value="bulan">Per Bulan</option>
+            <option value="hari">Per Hari</option>
+        </select>
+        <p id="hasilKoperasi" style="margin-top:15px; font-weight:bold;"></p>
+    `;
+
+    cleaveInputs.simpananPokok = new Cleave('#simpananPokok', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+    cleaveInputs.simpananWajib = new Cleave('#simpananWajib', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+    cleaveInputs.simpananSukarela = new Cleave('#simpananSukarela', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+    cleaveInputs.pinjamanKoperasi = new Cleave('#pinjamanKoperasi', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+    cleaveInputs.bungaKoperasi = new Cleave('#bungaKoperasi', { numeral: true, numeralThousandsGroupStyle: 'thousand' });
+
+    document.querySelectorAll("#simpananPokok, #simpananWajib, #simpananSukarela, #pinjamanKoperasi, #bungaKoperasi, #tipeBunga")
+    .forEach(el => el.addEventListener("input", updateKoperasiChart));
+}
+
+function updateKoperasiChart() {
+    const simpananPokok = parseInt(cleaveInputs.simpananPokok.getRawValue()) || 0;
+    const simpananWajib = parseInt(cleaveInputs.simpananWajib.getRawValue()) || 0;
+    const simpananSukarela = parseInt(cleaveInputs.simpananSukarela.getRawValue()) || 0;
+    const pinjaman = parseInt(cleaveInputs.pinjamanKoperasi.getRawValue()) || 0;
+    const bunga = parseFloat(cleaveInputs.bungaKoperasi.getRawValue()) || 0;
+    const tipe = document.getElementById("tipeBunga").value;
+
+    let totalBunga = 0;
+    if (tipe === "tahun") totalBunga = (pinjaman * bunga) / 100;
+    if (tipe === "bulan") totalBunga = (pinjaman * bunga * 12) / 100;
+    if (tipe === "hari") totalBunga = (pinjaman * bunga * 365) / 100;
+
+    const totalPinjaman = pinjaman + totalBunga;
+    const totalSimpanan = simpananPokok + simpananWajib + simpananSukarela;
+    const saldoAkhir = totalSimpanan - totalPinjaman;
+
+    // SHU otomatis (contoh: 20% dari saldo akhir)
+    const persenSHU = 20;
+    const shu = (saldoAkhir * persenSHU) / 100;
+
+    document.getElementById("hasilKoperasi").innerHTML = `
+        Simpanan Pokok: Rp ${formatAngka(simpananPokok)}<br>
+        Simpanan Wajib: Rp ${formatAngka(simpananWajib)}<br>
+        Simpanan Sukarela: Rp ${formatAngka(simpananSukarela)}<br>
+        Total Simpanan: Rp ${formatAngka(totalSimpanan)}
+        <hr>
+        Pinjaman: Rp ${formatAngka(pinjaman)}<br>
+        Bunga (${bunga}% / ${tipe}): Rp ${formatAngka(totalBunga)}<br>
+        Total Pinjaman: Rp ${formatAngka(totalPinjaman)}
+        <hr>
+        Saldo Akhir: Rp ${formatAngka(saldoAkhir)}<br>
+        SHU (${persenSHU}%): Rp ${formatAngka(Number(shu.toFixed(0)))}<br>
+        <b>Total Akhir + SHU: Rp ${formatAngka(Number((saldoAkhir + shu).toFixed(0)))}</b>
+    `;
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Total Simpanan', 'Total Pinjaman', 'SHU'],
+            datasets: [{
+                data: [totalSimpanan, totalPinjaman, shu],
+                backgroundColor: ['#03a9f4','#e91e63','#4caf50']
+            }]
+        },
+        options: { responsive: true }
+    });
+}
+  </script>
+</body>
+</html>
